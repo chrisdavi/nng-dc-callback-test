@@ -178,7 +178,7 @@ static void server_thread(void* arg)
 // If this gets uncommented, the pipe close notify works.
 // 	status = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC);
 //     GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
-// 
+//
 //     printf("Received %s\n", buf);
 
 	nng_free(buf, sz);
