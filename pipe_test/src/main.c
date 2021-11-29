@@ -97,23 +97,20 @@ end:
 
 static int init_tls_dialer(nng_dialer* dialer, nng_socket* sock, const char* target_url)
 {
-	int status;
-	nng_tls_config* config;
+    int status;
+    nng_tls_config* config;
 
-    status = nng_dialer_create(dialer, *sock, target_url);
+    status = nng_tls_config_alloc(&config, NNG_TLS_MODE_CLIENT);
     GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
-	status = nng_tls_config_alloc(&config, NNG_TLS_MODE_CLIENT);
-	GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
+    status = nng_tls_config_auth_mode(config, NNG_TLS_AUTH_MODE_NONE);
+    GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
-	status = nng_tls_config_auth_mode(config, NNG_TLS_AUTH_MODE_NONE);
-	GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
-
-	status = nng_dialer_setopt_ptr(*dialer, NNG_OPT_TLS_CONFIG, (void*)config);
-	GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
+    status = nng_dialer_setopt_ptr(*dialer, NNG_OPT_TLS_CONFIG, (void*)config);
+    GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
 end:
-	return status;
+    return status;
 }
 
 static void notify(nng_pipe pipe, nng_pipe_ev action, void* arg)
@@ -134,18 +131,18 @@ static void notify(nng_pipe pipe, nng_pipe_ev action, void* arg)
 
 static void client_notify(nng_pipe pipe, nng_pipe_ev action, void* arg)
 {
-	if (action == NNG_PIPE_EV_ADD_POST)
-	{
-		printf("client: new connection.\n");
-	}
-	else if (action == NNG_PIPE_EV_REM_POST)
-	{
-		printf("client: connection removed.\n");
-	}
-	else
-	{
-		printf("huh?\n");
-	}
+    if (action == NNG_PIPE_EV_ADD_POST)
+    {
+        printf("client: new connection.\n");
+    }
+    else if (action == NNG_PIPE_EV_REM_POST)
+    {
+        printf("client: connection removed.\n");
+    }
+    else
+    {
+        printf("huh?\n");
+    }
 }
 
 static void server_thread(void* arg)
@@ -153,8 +150,8 @@ static void server_thread(void* arg)
     uint32_t status = 0;
     nng_socket sock = {0};
     nng_listener listener = {0};
-	char* buf = NULL;
-	size_t sz;
+    char* buf = NULL;
+    size_t sz;
 
     status = nng_pair1_open(&sock);
     GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
@@ -169,19 +166,19 @@ static void server_thread(void* arg)
     status = nng_pipe_notify(sock, NNG_PIPE_EV_ADD_POST, notify, NULL);
     GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
-	status = nng_pipe_notify(sock, NNG_PIPE_EV_REM_POST, notify, NULL);
-	GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
+    status = nng_pipe_notify(sock, NNG_PIPE_EV_REM_POST, notify, NULL);
+    GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
     status = nng_listener_start(listener, 0);
     GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
 // If this gets uncommented, the pipe close notify works.
-// 	status = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC);
+//     status = nng_recv(sock, &buf, &sz, NNG_FLAG_ALLOC);
 //     GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 //
 //     printf("Received %s\n", buf);
 
-	nng_free(buf, sz);
+    nng_free(buf, sz);
 
 end:
 
@@ -206,25 +203,25 @@ int main( int argc, char* argv[] )
     nng_dialer dialer = {0};
 
     // Start the pipe server thread
-	status = nng_thread_create(&server_thread_handle, server_thread, NULL);
+    status = nng_thread_create(&server_thread_handle, server_thread, NULL);
     GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
-	// Sleep a bit to let everything actually setup.
-	nng_msleep(100);
+    // Sleep a bit to let everything actually setup.
+    nng_msleep(100);
 
     // Now dial and disconnect
-	status = nng_pair1_open(&sock);
-	GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
+    status = nng_pair1_open(&sock);
+    GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
-	// Create the notify callback
-	status = nng_pipe_notify(sock, NNG_PIPE_EV_ADD_POST, client_notify, NULL);
-	GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
+    // Create the notify callback
+    status = nng_pipe_notify(sock, NNG_PIPE_EV_ADD_POST, client_notify, NULL);
+    GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
-	status = nng_pipe_notify(sock, NNG_PIPE_EV_REM_POST, client_notify, NULL);
-	GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
+    status = nng_pipe_notify(sock, NNG_PIPE_EV_REM_POST, client_notify, NULL);
+    GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
-	status = nng_dialer_create(&dialer, sock, SERVER_URL);
-	GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
+    status = nng_dialer_create(&dialer, sock, SERVER_URL);
+    GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
 //     status = init_tls_dialer(&dialer, &sock, SERVER_URL);
 //     GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
@@ -237,8 +234,8 @@ int main( int argc, char* argv[] )
     status = nng_send(sock, "Hello World", strlen("Hello World") + 1, 0);
     GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
-	status = nng_thread_create(&close_thread_handle, closing_thread, &sock);
-	GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
+    status = nng_thread_create(&close_thread_handle, closing_thread, &sock);
+    GOTO_LABEL_WITH_NNG_ERR_IF(end, status != 0, status);
 
     // Wait on close thread
     nng_thread_destroy(close_thread_handle);
